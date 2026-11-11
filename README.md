@@ -1,87 +1,150 @@
-<p align="center">
-  <img src="https://raw.githubusercontent.com/JlMoreno00/pi-orca-images/main/docs/banner.png" alt="pi-orca-images: inline images for the Pi coding agent inside Orca's terminal" width="100%">
-</p>
+# pi-orca-images-enhance
 
-<p align="center">
-  <a href="https://www.npmjs.com/package/pi-orca-images"><img src="https://img.shields.io/npm/v/pi-orca-images?color=8ab4f8&label=npm" alt="npm version"></a>
-  <a href="https://github.com/JlMoreno00/pi-orca-images/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/JlMoreno00/pi-orca-images/ci.yml?branch=main&label=ci" alt="CI"></a>
-  <a href="https://github.com/JlMoreno00/pi-orca-images/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/pi-orca-images?color=8b92a3" alt="MIT license"></a>
-  <a href="https://pi.dev/packages"><img src="https://img.shields.io/badge/pi-package-ec4899" alt="Pi package"></a>
-</p>
+Inline images for the [Pi coding agent](https://pi.dev) inside [Orca](https://github.com/stablyai/orca), with links to open previews in Orca’s image viewer.
 
-Inline images for the [Pi coding agent](https://pi.dev) inside [Orca](https://github.com/stablyai/orca)'s terminal.
+This project is a fork of **[JlMoreno00/pi-orca-images](https://github.com/JlMoreno00/pi-orca-images)**. The original extension provides inline image fixes, tab-switch recovery, and pasted image labels. This fork adds a way to open those images inside Orca for a larger view and zoom.
 
-Pi draws images natively (screenshots it reads, image tool results, previews), but inside Orca you get a blank gap or `Read image file [image/png]` and nothing else. This package fixes that with no configuration, and adds OpenCode-style `[Image 1]` labels for pasted images.
+## What this fork adds
 
-```bash
-pi install npm:pi-orca-images
+### Open image links
+
+Each rendered image gets an **Open image** link beneath it. **Cmd-click the link on macOS** to open the image in an Orca image tab, where you can use Orca’s zoom controls.
+
+This keeps the preview inside Orca. Clicking the image itself and hovering to zoom are not supported.
+
+### Open an image with a command
+
+Run:
+
+```text
+/orca-images open
 ```
 
-Restart Pi in an Orca terminal and run `/orca-images test`. You should see a color gradient.
+This opens the **last image rendered by Pi** in an Orca image tab. It is a keyboard alternative to clicking the link.
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/JlMoreno00/pi-orca-images/main/docs/before-after.png" alt="The same read of an image in Pi inside Orca: without the package only the tool card shows; with it, the image is drawn in full" width="860">
-</p>
+### Workspace preview copies
 
-## What it fixes
+Orca requires files to be inside the workspace, so the extension saves preview copies under:
 
-Orca renders inline images through xterm.js's image addon. Three things keep Pi's images from showing up there:
+```text
+.pi/image-previews/
+```
 
-| Problem | Cause | What this package does |
-|---|---|---|
-| No images at all | Pi does not recognize `TERM_PROGRAM=Orca` and ignores the `ORCA_IMAGE_PROTOCOL=kitty` hint that Orca exports | Sets `PI_IMAGE_PROTOCOL` from `ORCA_IMAGE_PROTOCOL` at startup |
-| Only the first row of an image is drawn | The addon stores Kitty images per cell, so Pi's later line writes erase the rest | Turns on Pi's "draw images last" render path (the one Pi already uses for WezTerm), only while Pi renders; the variable never reaches commands Pi runs |
-| Images vanish after switching tabs | When output arrives while a pane is hidden, Orca rebuilds the pane from a snapshot that has no images ([stablyai/orca#32714](https://github.com/stablyai/orca/issues/32714)) | On focus-in, re-sends every visible image a few times over the next 5 seconds, until Orca's restore has finished |
+- The directory contains its own `.gitignore` to keep preview copies out of Git.
+- Copies remain across reloads so existing links and image tabs can keep working.
+- You can delete the directory when you no longer need the previews.
+- The saved image uses the bytes available to Pi. If a tool already resized the image, opening the preview does not restore the original resolution.
 
-## Pasted image labels
+## Try this fork
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/JlMoreno00/pi-orca-images/main/docs/image-labels.gif" alt="Typing a prompt in Pi, pasting two image paths that turn into [Image 1] and [Image 2] labels, deleting one label with a single backspace, and the sent message containing the real paths" width="760">
-</p>
+From a local checkout, run:
 
-Paste an image (or drop an image file) into Pi's prompt and the path is shown as a bold, colored `[Image 1]` label, as in OpenCode. Labels are numbered per message, move and delete as one unit, and become the real path again when you send the message, so the model sees exactly what it saw before.
+```bash
+npm install
+pi --no-extensions -e ./src/index.ts
+```
 
-It recognizes pastes made only of existing image files (`png`, `jpg`, `gif`, `webp`, `bmp`, `tiff`, `heic`, `avif`): plain paths, `~/` paths, quoted or backslash-escaped paths, and `file://` URLs. Text that mixes a path with other words is left alone. This works in every terminal, not only Orca, including Pi's own clipboard paste. Set `PI_IMAGE_LABELS=0` to turn it off.
+This loads the fork explicitly and disables other extensions for the test session, avoiding a second copy of the original extension.
+
+Inside Pi, run:
+
+```text
+/orca-images test
+```
+
+A color gradient and an **Open image** link should appear. Cmd-click the link to open the gradient in Orca, or run `/orca-images open`.
+
+To install this fork for normal use:
+
+```bash
+pi install git:github.com/Ky1ezer0/pi-orca-images-enhance
+```
+
+If the original package is installed, remove or disable it first so both copies do not load together. Restart Pi after installation.
+
+> `pi install npm:pi-orca-images` installs the original upstream package, not the enhancements in this fork.
+
+## Features inherited from upstream
+
+The following features come from [JlMoreno00/pi-orca-images](https://github.com/JlMoreno00/pi-orca-images).
+
+### Inline image fixes
+
+Orca renders terminal images through xterm.js’s image addon. The original extension addresses three rendering problems:
+
+| Problem | Fix |
+|---|---|
+| Images do not appear | Sets `PI_IMAGE_PROTOCOL` from Orca’s `ORCA_IMAGE_PROTOCOL` hint at startup. |
+| Only the first row appears | Enables Pi’s “draw images last” render path while rendering. |
+| Images disappear after switching tabs | Re-sends visible images several times over five seconds after focus returns. |
+
+The tab recovery works around [stablyai/orca#32714](https://github.com/stablyai/orca/issues/32714).
+
+![Upstream comparison showing inline images before and after the rendering fix](docs/before-after.png)
+
+### Pasted image labels
+
+Paste or drop an image file path into Pi’s prompt to display it as a bold, colored `[Image 1]` label. Labels are numbered per message, move and delete as one unit, and expand back to their original paths when you submit the prompt.
+
+Supported inputs include plain paths, `~/` paths, quoted paths, backslash-escaped paths, and `file://` URLs. The paste must consist only of existing image file paths; mixed text is left unchanged.
+
+Recognized extensions include PNG, JPEG, GIF, WebP, BMP, TIFF, HEIC, HEIF, and AVIF. Image labels work outside Orca too, including with Pi’s clipboard paste.
+
+![Upstream demonstration of pasted image labels](docs/image-labels.gif)
 
 ## Commands
 
-| Command | Effect |
-|---|---|
-| `/orca-images` or `/orca-images status` | Shows the detection decision, Pi's active image protocol, and whether the repaint fix and image labels are on |
-| `/orca-images test` | Draws a test gradient (it is not sent to the model) |
-| `/orca-images redraw` | Re-sends every visible image right now |
+| Command | Effect | Source |
+|---|---|---|
+| `/orca-images` or `/orca-images status` | Shows image detection, the active protocol, repaint fix status, and image-label status. | Upstream |
+| `/orca-images test` | Displays a test gradient without sending it to the model. | Upstream |
+| `/orca-images redraw` | Re-sends visible images immediately. | Upstream |
+| `/orca-images open` | Opens the last rendered image in an Orca image tab. | **This fork** |
 
 ## Configuration
 
-It does nothing outside Orca. Your explicit choices always win:
+Orca rendering fixes and preview links activate through automatic Orca detection. Pasted image labels can work in any terminal.
 
 | Setting | Effect |
 |---|---|
-| `PI_ORCA_IMAGES=0` | Disables the Orca image fixes |
-| `PI_IMAGE_LABELS=0` | Disables pasted image labels |
-| `PI_IMAGE_PROTOCOL=…` | Used as is; the package does not override it |
-| `terminal.images` in Pi settings | Applied by Pi on top of the package's choice |
-| `terminal.showImages: false` | Pi still hides images |
+| `PI_ORCA_IMAGES=0` | Disables the Orca image fixes and this fork’s preview links and open command. |
+| `PI_IMAGE_LABELS=0` | Disables pasted image labels. |
+| `PI_IMAGE_PROTOCOL=…` | Preserves your explicit protocol choice. This currently also prevents the fork’s preview feature from activating. |
+| `terminal.images` in Pi settings | Applies Pi’s protocol setting on top of the extension’s choice. |
+| `terminal.showImages: false` | Keeps inline images hidden. |
 
-## Requirements and limits
+## Requirements and limitations
 
-- Orca with inline images (v1.4.229 or later exports `ORCA_IMAGE_PROTOCOL`) and *Settings → Terminal → Inline Images* on (the default).
-- Pi 1.4 in its default `fullscreen` TUI mode. In `regular` mode detection still works, but the repaint fix and tab recovery do not apply.
-- Not inside tmux or screen: image escapes do not reach Orca through them.
-- Image labels wrap internal methods of Pi's editor (`handlePaste`, `segment`, `expandPasteMarkers`, `render`). If a Pi release changes them, pasted paths simply stay as paths.
-- The repaint fix wraps two internal methods of Pi's TUI. If a Pi release renames them, `/orca-images status` reports the fix as `unavailable` and images fall back to the first-row behavior; detection keeps working.
+- **Orca:** Inline images enabled under **Settings → Terminal → Inline Images**. Orca v1.4.229 or later exports the image protocol hint used for detection.
+- **Pi:** Upstream targets Pi 1.4. This fork’s link and open-command workflow was also tested with Pi 1.5.2 on macOS.
+- **Fullscreen mode:** Required for the repaint fix and tab recovery. In regular mode, protocol detection still works.
+- **Workspace access:** Preview copies require a writable working directory inside an Orca workspace. The open command requires an Orca CLI with `file open` support.
+- **Terminal multiplexers:** Automatic activation is skipped inside tmux and screen.
+- **Hover and direct clicks:** Use the **Open image** link; neither hover-to-zoom nor clicking the image itself is implemented.
+- **Internal Pi APIs:** Image labels, repaint fixes, and preview links rely on internal Pi methods or fields. Future Pi changes may require compatibility updates. If preview data cannot be read or saved, links are omitted.
 
 ## Development
 
 ```bash
 npm install
-npm run check          # typecheck + tests
-pi -e ./src/index.ts   # try it without installing
-python3 scripts/banner.py  # regenerate docs/banner.png (Pillow, Inter, JetBrains Mono)
+npm run check
+pi --no-extensions -e ./src/index.ts
 ```
 
-The screenshots in `docs/` are real captures of Pi 1.4 in Orca 1.4.229 on macOS.
+`npm run check` runs TypeScript checking and the test suite. Preview tests cover link generation, saving image bytes, opening the last rendered image, error handling, and restoring the renderer.
 
-## License
+The original documentation images in `docs/` are upstream captures of Pi 1.4 in Orca 1.4.229 on macOS. To regenerate the upstream banner:
 
-MIT
+```bash
+python3 scripts/banner.py
+```
+
+The banner script requires Pillow, Inter, and JetBrains Mono.
+
+## Credits and license
+
+Original extension by **[JlMoreno00](https://github.com/JlMoreno00)**: [pi-orca-images](https://github.com/JlMoreno00/pi-orca-images).
+
+Fork enhancements in **[Ky1ezer0/pi-orca-images-enhance](https://github.com/Ky1ezer0/pi-orca-images-enhance)**: Open image links, the `/orca-images open` command, and workspace preview copies.
+
+Licensed under [MIT](LICENSE). The original license and attribution are preserved.
