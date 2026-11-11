@@ -1,8 +1,8 @@
 # pi-orca-images-enhance
 
-Inline images for the [Pi coding agent](https://pi.dev) inside [Orca](https://github.com/stablyai/orca), with links to open previews in Orca’s image viewer.
+Inline images for the [Pi coding agent](https://pi.dev) inside [Orca](https://github.com/stablyai/orca), with temporary image previews and a command to open macOS Preview.
 
-This project is a fork of **[JlMoreno00/pi-orca-images](https://github.com/JlMoreno00/pi-orca-images)**. The original extension provides inline image fixes, tab-switch recovery, and pasted image labels. This fork adds a way to open those images inside Orca for a larger view and zoom.
+This project is a fork of **[JlMoreno00/pi-orca-images](https://github.com/JlMoreno00/pi-orca-images)**. The original extension provides inline image fixes, tab-switch recovery, and pasted image labels. This fork adds image links and a macOS Preview command for a larger view and zoom, without writing preview files into your project.
 
 ## What this fork adds
 
@@ -20,20 +20,18 @@ Run:
 /orca-images open
 ```
 
-This opens the **last image rendered by Pi** in an Orca image tab. It is a keyboard alternative to clicking the link.
+On macOS, this opens the **last image rendered by Pi** in **Preview**, using `open -a Preview`. Cmd-clicking the file link is handled by the terminal; in our Orca test it opened an Orca image tab instead.
 
-### Workspace preview copies
+### Temporary preview files
 
-Orca requires files to be inside the workspace, so the extension saves preview copies under:
+Previews are saved in a private `pi-orca-images-*` directory under the operating system’s temporary directory. **No new preview files are written to your project.**
 
-```text
-.pi/image-previews/
-```
-
-- The directory contains its own `.gitignore` to keep preview copies out of Git.
-- Copies remain across reloads so existing links and image tabs can keep working.
-- You can delete the directory when you no longer need the previews.
-- The saved image uses the bytes available to Pi. If a tool already resized the image, opening the preview does not restore the original resolution.
+- Identical images reuse a file within each loaded extension instance.
+- Files remain available while Pi is running, including across `/reload`.
+- Temporary directories are removed on normal Pi process exit. Links expire when their files are removed.
+- Forced termination or a crash can leave temporary files behind; cleanup is not a hard disk quota. A long-running session can still accumulate previews.
+- Older `.pi/image-previews/` folders are not automatically deleted. You can remove those old preview copies when you no longer need them.
+- The preview uses the bytes available to Pi; it cannot restore resolution already removed by a tool.
 
 ## Try this fork
 
@@ -54,7 +52,13 @@ Inside Pi, run:
 
 A color gradient and an **Open image** link should appear. Cmd-click the link to open the gradient in Orca, or run `/orca-images open`.
 
-To install this fork for normal use:
+To use this local temporary-preview version in normal Pi sessions, remove or disable any previously installed copy, then install this checkout:
+
+```bash
+pi install /absolute/path/to/pi-orca-images-enhance
+```
+
+To install this fork from GitHub instead:
 
 ```bash
 pi install git:github.com/Ky1ezer0/pi-orca-images-enhance
@@ -99,7 +103,7 @@ Recognized extensions include PNG, JPEG, GIF, WebP, BMP, TIFF, HEIC, HEIF, and A
 | `/orca-images` or `/orca-images status` | Shows image detection, the active protocol, repaint fix status, and image-label status. | Upstream |
 | `/orca-images test` | Displays a test gradient without sending it to the model. | Upstream |
 | `/orca-images redraw` | Re-sends visible images immediately. | Upstream |
-| `/orca-images open` | Opens the last rendered image in an Orca image tab. | **This fork** |
+| `/orca-images open` | Opens the last rendered image in macOS Preview. | **This fork** |
 
 ## Configuration
 
@@ -118,7 +122,7 @@ Orca rendering fixes and preview links activate through automatic Orca detection
 - **Orca:** Inline images enabled under **Settings → Terminal → Inline Images**. Orca v1.4.229 or later exports the image protocol hint used for detection.
 - **Pi:** Upstream targets Pi 1.4. This fork’s link and open-command workflow was also tested with Pi 1.5.2 on macOS.
 - **Fullscreen mode:** Required for the repaint fix and tab recovery. In regular mode, protocol detection still works.
-- **Workspace access:** Preview copies require a writable working directory inside an Orca workspace. The open command requires an Orca CLI with `file open` support.
+- **Temporary storage:** The OS temporary directory must be writable. The open command requires macOS with Preview installed; terminal link behavior depends on the terminal.
 - **Terminal multiplexers:** Automatic activation is skipped inside tmux and screen.
 - **Hover and direct clicks:** Use the **Open image** link; neither hover-to-zoom nor clicking the image itself is implemented.
 - **Internal Pi APIs:** Image labels, repaint fixes, and preview links rely on internal Pi methods or fields. Future Pi changes may require compatibility updates. If preview data cannot be read or saved, links are omitted.
@@ -145,6 +149,6 @@ The banner script requires Pillow, Inter, and JetBrains Mono.
 
 Original extension by **[JlMoreno00](https://github.com/JlMoreno00)**: [pi-orca-images](https://github.com/JlMoreno00/pi-orca-images).
 
-Fork enhancements in **[Ky1ezer0/pi-orca-images-enhance](https://github.com/Ky1ezer0/pi-orca-images-enhance)**: Open image links, the `/orca-images open` command, and workspace preview copies.
+Fork enhancements in **[Ky1ezer0/pi-orca-images-enhance](https://github.com/Ky1ezer0/pi-orca-images-enhance)**: Open image links, the `/orca-images open` command, and temporary preview files.
 
 Licensed under [MIT](LICENSE). The original license and attribution are preserved.
